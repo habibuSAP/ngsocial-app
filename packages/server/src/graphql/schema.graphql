@@ -27,7 +27,7 @@ type User {
     username: String!
     password: String!
     image: String
-    coverImgae: String
+    coverImage: String
     postCount: Int!
     createdAt: String!
 }
@@ -36,7 +36,7 @@ type Post {
     id: ID!
     text: String
     image: String
-    author: User!
+    author: ID!
     commentsCount: Int!
     likesCount: Int!
     likeByAuthUser: Boolean
@@ -47,15 +47,15 @@ type Post {
 
 type Comment {
     id: ID!
-    Comment: String!
-    Author: User!
+    comment: String!
+    author: ID!
     post: ID!
     createdAt: String!
 }
 
 type Like {
     id: ID!
-    user: User!
+    user: ID!
     post: ID!
     createdAt: String!
 }

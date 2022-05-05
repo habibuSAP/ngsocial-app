@@ -4,14 +4,8 @@ import { IResolvers} from "@graphql-tools/utils";
 import schema from "./graphql/schema";
 import casual from "casual";
 import cors from 'cors';
-
-const PORT = 8888
-// const app: Application = express();
-// app.get('/', (req, res) =>
-//     res.send('Express is successfuly running!'));
-// app.listen(PORT, ()=>{
-//     console.log(`Server is running at http://localhost:${PORT}`);
-// });
+import 'reflect-metadata';
+import { createConnection, Connection} from "typeorm";
 
 const typeDefs = gql `type Query { message: String!}`
 const resolvers: IResolvers = {
@@ -23,7 +17,6 @@ const config: Config = {
     typeDefs: typeDefs,
     resolvers: resolvers
 };
-
 let postsIds: string[] = [];
 let usersIds: string[] = [];
 const mocks = {
@@ -73,9 +66,10 @@ const mocks = {
 };
 
 async function startApolloServer() {
+    const PORT = 8888;
     const app: Application = express();
     app.use(cors)
-    const server: ApolloServer = new ApolloServer({schema, mocks, mockEntireSchema: false});
+    const server: ApolloServer = new ApolloServer({schema});
     await server.start();
     server.applyMiddleware({
         app,
@@ -85,5 +79,7 @@ async function startApolloServer() {
         console.log(`Apollo Server is running at http://localhost:${PORT}`);
     });
 }
-startApolloServer();
-
+const connection: Promise<Connection> = createConnection();
+connection.then( ()=> {
+    startApolloServer();
+}).catch( error => console.log('Database connection error:', error));

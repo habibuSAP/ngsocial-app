@@ -3,7 +3,7 @@
   "host": "localhost",
   "port": 3306,
   "username": "habibuuser",
-  "password": "p4$Sw0rd22",
+  "password": "To0r@20223",
   "database": "socialdb",
   "synchronize": true,
   "logging": false,
@@ -15,5 +15,8 @@
   ],
   "subscribers": [
     "src/subscriber/**/*.ts"
-  ]
+  ],
+  "factories": ["src/database/factories/**/*.ts"],
+  "seeds": ["src/database/seeds/**/*.ts"]
+
 }

@@ -25,5 +25,6 @@ export class Post {
     @JoinColumn() latestComment: Comment;
     @ManyToOne(type => User, user => user.posts, { onDelete: 'CASCADE'}) author: User;
     @OneToMany( type => Like, like => like.post) likes: Like[];
+    @OneToMany(type => Comment, comment => comment.author) comments: Comment[];
 
 }

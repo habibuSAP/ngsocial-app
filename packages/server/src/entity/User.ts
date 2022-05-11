@@ -21,7 +21,7 @@ export class User {
     @Column() password: string;
     @Column({nullable:true}) image: string;
     @Column({nullable: true}) coverImage: string;
-    @Column({default: 0}) postCount: number;
+    @Column({default: 0}) postsCount: number;
     @CreateDateColumn() createdAt: Date;
     @OneToMany(type => Post, post => post.author) posts:Post[];
     @OneToMany(type => Comment, comment => comment.author) comments: Comment[];

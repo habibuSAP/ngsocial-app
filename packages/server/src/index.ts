@@ -5,7 +5,12 @@ import schema from "./graphql/schema";
 import casual from "casual";
 import cors from 'cors';
 import 'reflect-metadata';
-import { createConnection, Connection} from "typeorm";
+import {
+    createConnection,
+    Connection,
+    Repository, getRepository
+} from "typeorm";
+import { User, Post, Comment, Like, Notification } from "./entity";
 
 const typeDefs = gql `type Query { message: String!}`
 const resolvers: IResolvers = {
@@ -19,6 +24,17 @@ const config: Config = {
 };
 let postsIds: string[] = [];
 let usersIds: string[] = [];
+
+export type Context = {
+    orm: {
+        userRepository: Repository<User>;
+        postRepository: Repository<Post>;
+        commentRepository: Repository<Comment>;
+        likeRepository: Repository<Like>;
+        notificationRepository: Repository<Notification>;
+    };
+};
+
 const mocks = {
     User: () => ({
         id: () => {let uuid = casual.uuid; usersIds.push(uuid); return uuid},
@@ -68,8 +84,26 @@ const mocks = {
 async function startApolloServer() {
     const PORT = 8888;
     const app: Application = express();
-    app.use(cors)
-    const server: ApolloServer = new ApolloServer({schema});
+    app.use(cors());
+
+    const userRepository: Repository<User> = getRepository(User);
+    const postRepository: Repository<Post> = getRepository(Post);
+    const commentRepository: Repository<Comment> = getRepository(Comment);
+    const likeRepository: Repository<Like> = getRepository(Like);
+    const notificationRepository: Repository<Notification> = getRepository(Notification);
+
+    const context: Context = {
+        orm: {
+            userRepository: userRepository,
+            postRepository: postRepository,
+            commentRepository: commentRepository,
+            likeRepository: likeRepository,
+            notificationRepository: notificationRepository,
+        }
+    };
+
+
+    const server: ApolloServer = new ApolloServer({schema, context});
     await server.start();
     server.applyMiddleware({
         app,

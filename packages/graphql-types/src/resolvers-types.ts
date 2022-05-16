@@ -14,6 +14,12 @@ export type Scalars = {
   Float: number;
 };
 
+export type AuthPayload = {
+  __typename?: 'AuthPayload';
+  token: Scalars['String'];
+  user: User;
+};
+
 export type Comment = {
   __typename?: 'Comment';
   author: User;
@@ -36,10 +42,12 @@ export type Mutation = {
   comment?: Maybe<Comment>;
   like?: Maybe<Like>;
   post?: Maybe<Post>;
+  register: AuthPayload;
   removeComment?: Maybe<Comment>;
   removeLike?: Maybe<Like>;
   removeNotification?: Maybe<Scalars['ID']>;
   removePost?: Maybe<Scalars['ID']>;
+  signIn: AuthPayload;
 };
 
 
@@ -60,6 +68,14 @@ export type MutationPostArgs = {
 };
 
 
+export type MutationRegisterArgs = {
+  email: Scalars['String'];
+  fullName: Scalars['String'];
+  password: Scalars['String'];
+  username: Scalars['String'];
+};
+
+
 export type MutationRemoveCommentArgs = {
   id: Scalars['ID'];
 };
@@ -77,6 +93,12 @@ export type MutationRemoveNotificationArgs = {
 
 export type MutationRemovePostArgs = {
   id: Scalars['ID'];
+};
+
+
+export type MutationSignInArgs = {
+  email: Scalars['String'];
+  password: Scalars['String'];
 };
 
 export type Notification = {
@@ -240,6 +262,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
+  AuthPayload: ResolverTypeWrapper<AuthPayload>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']>;
   Comment: ResolverTypeWrapper<Comment>;
   ID: ResolverTypeWrapper<Scalars['ID']>;
@@ -255,6 +278,7 @@ export type ResolversTypes = {
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
+  AuthPayload: AuthPayload;
   Boolean: Scalars['Boolean'];
   Comment: Comment;
   ID: Scalars['ID'];
@@ -266,6 +290,12 @@ export type ResolversParentTypes = {
   Query: {};
   String: Scalars['String'];
   User: User;
+};
+
+export type AuthPayloadResolvers<ContextType = any, ParentType extends ResolversParentTypes['AuthPayload'] = ResolversParentTypes['AuthPayload']> = {
+  token?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  user?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type CommentResolvers<ContextType = any, ParentType extends ResolversParentTypes['Comment'] = ResolversParentTypes['Comment']> = {
@@ -289,10 +319,12 @@ export type MutationResolvers<ContextType = any, ParentType extends ResolversPar
   comment?: Resolver<Maybe<ResolversTypes['Comment']>, ParentType, ContextType, RequireFields<MutationCommentArgs, 'comment' | 'postId'>>;
   like?: Resolver<Maybe<ResolversTypes['Like']>, ParentType, ContextType, RequireFields<MutationLikeArgs, 'postId'>>;
   post?: Resolver<Maybe<ResolversTypes['Post']>, ParentType, ContextType, Partial<MutationPostArgs>>;
+  register?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationRegisterArgs, 'email' | 'fullName' | 'password' | 'username'>>;
   removeComment?: Resolver<Maybe<ResolversTypes['Comment']>, ParentType, ContextType, RequireFields<MutationRemoveCommentArgs, 'id'>>;
   removeLike?: Resolver<Maybe<ResolversTypes['Like']>, ParentType, ContextType, RequireFields<MutationRemoveLikeArgs, 'id'>>;
   removeNotification?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType, RequireFields<MutationRemoveNotificationArgs, 'id'>>;
   removePost?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType, RequireFields<MutationRemovePostArgs, 'id'>>;
+  signIn?: Resolver<ResolversTypes['AuthPayload'], ParentType, ContextType, RequireFields<MutationSignInArgs, 'email' | 'password'>>;
 };
 
 export type NotificationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Notification'] = ResolversParentTypes['Notification']> = {
@@ -343,6 +375,7 @@ export type UserResolvers<ContextType = any, ParentType extends ResolversParentT
 };
 
 export type Resolvers<ContextType = any> = {
+  AuthPayload?: AuthPayloadResolvers<ContextType>;
   Comment?: CommentResolvers<ContextType>;
   Like?: LikeResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;

@@ -18,6 +18,8 @@ type Mutation {
     like(postId: ID!): Like
     removeLike(id: ID!): Like
     removeNotification(id: ID!): ID
+    register(fullName:String!, username: String!, email: String!, password:String!): AuthPayload!
+    signIn(email: String!, password: String!): AuthPayload!
 }
 type User {
     id: ID!
@@ -65,4 +67,9 @@ type Notification {
     text: String!
     postId: ID!
     createdAt: String!
+}
+
+type AuthPayload {
+    token: String!
+    user: User!
 }

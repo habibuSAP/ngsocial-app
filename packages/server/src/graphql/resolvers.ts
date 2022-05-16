@@ -2,8 +2,38 @@ import { Context } from '..';
 // @ts-ignore
 import { Resolvers, User, Post, Comment, Like, Notification } from '@ngsocial/graphql';
 import { ApolloError} from "apollo-server-express";
-import {DeleteResult} from "typeorm";
+import {DeleteResult, QueryFailedError} from "typeorm";
 import { Post as PostEntity} from '../entity';
+import jsonwebtoken from 'jsonwebtoken';
+import crypto from 'crypto';
+import dotenv from 'dotenv';
+
+dotenv.config();
+const hashPassword = async (plainPassword: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const bytes = crypto.randomBytes(16);
+        const salt = bytes.toString("hex");
+        crypto.scrypt(plainPassword, salt, 64, (error, buffer) => {
+            if (error) {
+                reject(error);
+            }
+            const hashedPassword = `${salt}: ${buffer.toString('hex')}`;
+            resolve(hashedPassword);
+        })
+    })
+};
+
+const compareToHash = async (plainPassword: string, hash: string): Promise<boolean> => {
+    return new Promise(( resolve, reject) => {
+        const result = hash.split(":");
+        const salt = result[0];
+        const hPassword = result[1];
+        crypto.scrypt(plainPassword, salt, 64, (error, buffer) => {
+            if (error) { reject(error);}
+            resolve(hPassword == buffer.toString('hex'));
+        });
+    })
+};
 
 
 const resolvers: Resolvers = {
@@ -33,7 +63,7 @@ const resolvers: Resolvers = {
                 .leftJoinAndSelect("latestComment.author", "latestComment_author")
                 .leftJoinAndSelect("post.likes", "likes")
                 .leftJoinAndSelect("likes.user", "likes_user")
-                .orderBy("post.createdAt", "DESC")
+                .orderBy({"post.createdAt": "DESC"})
                 .skip(args.offset as number)
                 .take(args.limit as number)
                 .getMany();
@@ -48,7 +78,7 @@ const resolvers: Resolvers = {
                 .leftJoinAndSelect("latestComment.author", "latestComment_author")
                 .leftJoinAndSelect("post.likes", "likes")
                 .leftJoinAndSelect("list.user", "likes_user")
-                .orderBy("post.createdAt", "DESC")
+                .orderBy({"post.createdAt": "DESC"})
                 .skip(args.offset as number)
                 .take(args.limit as number)
                 .getMany();
@@ -60,7 +90,7 @@ const resolvers: Resolvers = {
                 .createQueryBuilder("notification")
                 .innerJoinAndSelect("notification.user", "user")
                 .where("user.id = :userId", {userId: args.userId})
-                .orderBy("notification.createdAt", "DESC")
+                .orderBy({"notification.createdAt": "DESC"})
                 .skip(args.offset as number)
                 .take(args.limit as number)
                 .getMany();
@@ -74,7 +104,7 @@ const resolvers: Resolvers = {
                 .innerJoinAndSelect("comment.author", "author")
                 .innerJoinAndSelect("comment.post", "post")
                 .where("post.id = :id", { id: args.postId as string})
-                .orderBy("comment.createdAt", "DESC")
+                .orderBy({"comment.createdAt" :"DESC"})
                 .skip(args.offset as number)
                 .take(args.limit as number)
                 .getMany() as unknown as Comment[];
@@ -86,7 +116,7 @@ const resolvers: Resolvers = {
                 .innerJoinAndSelect("like.user", "user")
                 .innerJoinAndSelect("like.post", "post")
                 .where("post.id: id", {id: args.postId})
-                .orderBy("like.createdAt", "DESC")
+                .orderBy({"like.createdAt": "DESC"})
                 .skip(args.offset as number)
                 .take(args.limit as number)
                 .getMany() as unknown as Like[];
@@ -168,7 +198,48 @@ const resolvers: Resolvers = {
                 throw new ApolloError("Notification not deleted", "NOTIFICATION_NOT_DELETED");
             }
             return args.id;
+        },
+        register: async  (_, args, {orm}) => {
+            const { fullName, username, email, password } = args;
+            let user = orm.userRepository.create( {
+                fullName: fullName,
+                username: username,
+                email: email,
+                password: await hashPassword(password),
+                postsCount: 0,
+                image: 'https://i.imgur.com/nzTFnsM.png'
+            });
+
+            const savedUser = await orm.userRepository.save(user)
+                .catch((error: unknown) => {
+                    if (error instanceof QueryFailedError && error.driverError.code == 'ER_DUP_ENTRY'
+                    ) {
+                        throw new ApolloError('A user with this email or username already exists', 'USER_ALREADY_EXISTS');
+                    }
+                });
+            const token = jsonwebtoken.sign({
+                id: savedUser.id, email: user.email}, process.env.JWT_SECRETE as string, {expiresIn: '1y'});
+
+            return { token: token, user: savedUser};
+        },
+
+        signIn: async (_, args, {orm}) => {
+          const { email, password } = args;
+          const user = await orm.userRepository.findOne({where: {email: email}});
+
+          if (!user) {
+              throw new ApolloError('No user found with this email', 'NO_USER_FOUND');
+          }
+
+          if (!await compareToHash(password, user.password)) {
+              throw new ApolloError('Incorrect password', 'INCORRECT_PASSWORD');
+          }
+
+          const token = jsonwebtoken.sign(
+              { id: user.id, email: user.email}, process.env.JWT_SECRET as string, { expiresIn: '1d'});
+          return { token, user};
         }
+
     }
 };
 

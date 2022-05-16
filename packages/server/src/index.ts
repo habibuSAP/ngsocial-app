@@ -11,7 +11,21 @@ import {
     Repository, getRepository
 } from "typeorm";
 import { User, Post, Comment, Like, Notification } from "./entity";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 
+dotenv.config();
+const {JWT_SECRET} = process.env;
+const getAuthuser = (token: string) => {
+    try {
+        if (token) {
+            return jwt.verify(token, JWT_SECRET as string);
+        }
+        return null;
+    } catch (error){
+        return null;
+    }
+}
 const typeDefs = gql `type Query { message: String!}`
 const resolvers: IResolvers = {
     Query: {
@@ -33,6 +47,7 @@ export type Context = {
         likeRepository: Repository<Like>;
         notificationRepository: Repository<Notification>;
     };
+    authUser: User | null;
 };
 
 const mocks = {
@@ -92,18 +107,25 @@ async function startApolloServer() {
     const likeRepository: Repository<Like> = getRepository(Like);
     const notificationRepository: Repository<Notification> = getRepository(Notification);
 
-    const context: Context = {
-        orm: {
-            userRepository: userRepository,
-            postRepository: postRepository,
-            commentRepository: commentRepository,
-            likeRepository: likeRepository,
-            notificationRepository: notificationRepository,
+    const server: ApolloServer = new ApolloServer({schema,
+        context: ({req}) => {
+            const token = req.get('Authorization') || '';
+            const authUser = getAuthuser(token.split(' ')[1]);
+
+            const ctx: Context = {
+                orm: {
+                    userRepository: userRepository,
+                    postRepository: postRepository,
+                    commentRepository: commentRepository,
+                    likeRepository: likeRepository,
+                    notificationRepository: notificationRepository
+                },
+                // @ts-ignore
+                authUser: authUser
+            };
+            return ctx;
         }
-    };
-
-
-    const server: ApolloServer = new ApolloServer({schema, context});
+    });
     await server.start();
     server.applyMiddleware({
         app,

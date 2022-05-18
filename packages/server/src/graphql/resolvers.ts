@@ -1,8 +1,7 @@
 import { Context } from '..';
-// @ts-ignore
 import { Resolvers, User, Post, Comment, Like, Notification } from '@ngsocial/graphql';
 import { ApolloError} from "apollo-server-express";
-import {DeleteResult, QueryFailedError} from "typeorm";
+import {DeleteResult, QueryFailedError, UpdateResult} from "typeorm";
 import jsonwebtoken from 'jsonwebtoken';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
@@ -11,35 +10,36 @@ import {
     Comment as CommentEntity,
     Like as LikeEntity
 } from '../entity'
+import { GraphQLUpload} from "graphql-upload";
+import fs from "fs";
+
+const { finished } = require('stream-promise');
 
 dotenv.config();
 const hashPassword = async (plainPassword: string): Promise<string> => {
     return new Promise((resolve, reject) => {
-        const bytes = crypto.randomBytes(16);
-        const salt = bytes.toString("hex");
-        crypto.scrypt(plainPassword, salt, 64, (error, buffer) => {
+        const salt = crypto.randomBytes(16).toString("hex");
+        crypto.scrypt(plainPassword, salt, 64, (error, derivedKey) => {
             if (error) {
                 reject(error);
             }
-            const hashedPassword = `${salt}: ${buffer.toString('hex')}`;
-            resolve(hashedPassword);
+            resolve(`${salt}:${derivedKey.toString('hex')}`);
         })
     })
 };
 
 const compareToHash = async (plainPassword: string, hash: string): Promise<boolean> => {
     return new Promise(( resolve, reject) => {
-        const result = hash.split(":");
-        const salt = result[0];
-        const hPassword = result[1];
-        crypto.scrypt(plainPassword, salt, 64, (error, buffer) => {
+       const [salt, key] = hash.split(":");
+        crypto.scrypt(plainPassword, salt, 64, (error,derivedKey) => {
             if (error) { reject(error);}
-            resolve(hPassword == buffer.toString('hex'));
+            resolve(key == derivedKey.toString('hex'));
         });
     })
 };
 
 
+// @ts-ignore
 const resolvers: Resolvers = {
     Query: {
         message: ()=> "Resolver works!",
@@ -303,9 +303,82 @@ const resolvers: Resolvers = {
           const token = jsonwebtoken.sign(
               { id: user.id, email: user.email}, process.env.JWT_SECRET as string, { expiresIn: '1d'});
           return { token, user};
+        },
+        // @ts-ignore
+        uploadFile: async (_, { file }) => {
+            const { createReadStream, filename, mimetype, encoding } = await file;
+            const fileStream = createReadStream();
+            const output = fs.createReadStream('./upload/local-file-uploadOutput.txt');
+            fileStream.pipe(output);
+            const result = await finished(output);
+            const url = result.Location;
+            return { url, filename, mimetype, encoding};
+
+        },
+        //@ts-ignore
+        setUserCover: async (_,args, { orm, authUser }: Context) => {
+            const { createReadStream, filename } = await args.file;
+            const userOutput = createReadStream();
+            const output = fs.createWriteStream('./upload/local-file-userOutput.txt');
+            userOutput.pipe(output);
+            let fileUrl = '';
+            try {
+                const result = await finished(output);
+                fileUrl = result.Location;
+            } catch (error){
+                throw new ApolloError('Setting user photo failed', 'SET_USER_PHOTO_FAILED');
+            }
+            if (fileUrl !=''){
+                const updateResult: UpdateResult = await orm.userRepository.update(
+                    {id: authUser?.id},
+                    {image: fileUrl}
+                );
+                if(updateResult.affected && updateResult.affected <= 0) {
+                    throw new ApolloError('Setting user photo failed', 'SET_USER_PHOTO_FAILED');
+                }
+            }
+
+            return await  orm.userRepository.findOne(authUser?.id) as unknown as User;
+        },
+        //@ts-ignore
+        setUserPhoto: async (_,args, {orm, authUser}: Context) => {
+            const { createReadStream, filename} = await args.file;
+            const coverOutput = createReadStream();
+            const output = fs.createWriteStream('./upload/local-file-coverOutput.txt');
+            coverOutput.pipe(output);
+            let fileUrl = '';
+            try{
+                const result = await finished(output);
+                fileUrl = result.Location;
+            }catch (error){
+                throw new ApolloError('Failed to set user cover photo', 'SET_USER_COVER_PHOTO_FAILED');
+            }
+           if (fileUrl !='') {
+               const updatedResult: UpdateResult = await orm.userRepository.update(
+                   {id:authUser?.id},
+                   {coverImage: fileUrl}
+               );
+               if(updatedResult.affected && updatedResult.affected <= 0) {
+                   throw new ApolloError('Failed to ser user cover photo', 'SET_USER_COVER_PHOTO_FAILED');
+               }
+           }
+
+            return await orm.userRepository.findOne(authUser?.id) as unknown as User;
+        },
+        setUserBio: async (_, args, {orm, authUser}: Context) => {
+            const updatResult: UpdateResult = await orm.userRepository.update(
+                {id: authUser?.id},
+                {bio: args.bio});
+            if (updatResult.affected && updatResult.affected == 0) {
+                throw new  ApolloError('User bio update failed.', 'USER_BIO_UPDATE_FAILED');
+            }
+            return await orm.userRepository.findOne(authUser?.id) as unknown as User;
+
         }
 
-    }
+    },
+    // @ts-ignore
+    Upload: GraphQLUpload
 };
 
 export default resolvers;

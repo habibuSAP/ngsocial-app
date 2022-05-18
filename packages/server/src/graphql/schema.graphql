@@ -1,4 +1,5 @@
 # noinspection GraphQLTypeRedefinition
+scalar Upload
 type Query {
     message: String!
     getUser(userId: ID!): User @auth
@@ -20,6 +21,10 @@ type Mutation {
     removeNotification(id: ID!): ID @auth
     register(fullName:String!, username: String!, email: String!, password:String!): AuthPayload!
     signIn(email: String!, password: String!): AuthPayload!
+    uploadFile(file: Upload!): File @auth
+    setUserPhoto(file: Upload!): User @auth
+    setUserCover(file: Upload!):User @auth
+    setUserBio(bio: String!): User @auth
 }
 type User {
     id: ID!
@@ -72,4 +77,11 @@ type Notification {
 type AuthPayload {
     token: String!
     user: User!
+}
+
+type File {
+    url: String
+    filename: String
+    mimetype: String
+    encoding: String
 }

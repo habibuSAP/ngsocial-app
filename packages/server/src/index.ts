@@ -13,6 +13,7 @@ import {
 import { User, Post, Comment, Like, Notification } from "./entity";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { graphqlUploadExpress } from 'graphql-upload';
 
 dotenv.config();
 const {JWT_SECRET} = process.env;
@@ -100,7 +101,7 @@ async function startApolloServer() {
     const PORT = 8888;
     const app: Application = express();
     app.use(cors());
-
+    app.use(graphqlUploadExpress());
     const userRepository: Repository<User> = getRepository(User);
     const postRepository: Repository<Post> = getRepository(Post);
     const commentRepository: Repository<Comment> = getRepository(Comment);
@@ -124,7 +125,8 @@ async function startApolloServer() {
                 authUser: authUser
             };
             return ctx;
-        }
+        },
+
     });
     await server.start();
     server.applyMiddleware({

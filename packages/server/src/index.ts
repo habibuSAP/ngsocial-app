@@ -1,5 +1,5 @@
 import express ,{ Application} from "express";
-import { ApolloServer, Config, gql} from "apollo-server-express";
+import { ApolloServer, Config, gql, AuthenticationError} from "apollo-server-express";
 import { IResolvers} from "@graphql-tools/utils";
 import schema from "./graphql/schema";
 import casual from "casual";
@@ -14,6 +14,11 @@ import { User, Post, Comment, Like, Notification } from "./entity";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { graphqlUploadExpress } from 'graphql-upload';
+import { createServer} from "http";
+import { execute, subscribe } from 'graphql';
+import { SubscriptionServer, ConnectionParams} from "subscriptions-transport-ws";
+
+
 
 dotenv.config();
 const {JWT_SECRET} = process.env;
@@ -100,6 +105,7 @@ const mocks = {
 async function startApolloServer() {
     const PORT = 8888;
     const app: Application = express();
+    const httpServer = createServer(app);
     app.use(cors());
     app.use(graphqlUploadExpress());
     const userRepository: Repository<User> = getRepository(User);
@@ -126,14 +132,39 @@ async function startApolloServer() {
             };
             return ctx;
         },
+        plugins: [{
+        //@ts-ignore
+            async serverWillStart(){
+                return {
+                    async drainServer(){
+                        subscriptionServer.close();
+                    }
+                };
+            }
+        }]
 
     });
+    const subscriptionServer = SubscriptionServer.create(
+        { schema, execute, subscribe, onConnect: (connectionParams: ConnectionParams) => {
+                const token = connectionParams.get('authToken') || '';
+                if (token != '') {
+                    const authUser = getAuthuser(token.split('')[1]);
+                    return {
+                        authUser: authUser
+                    }
+                }
+                throw new AuthenticationError('User is not authenticated');
+            }
+        },
+        //@ts-ignore
+        { server: httpServer, path: server.graphqlPath}
+    );
     await server.start();
     server.applyMiddleware({
         app,
         path: '/graphql'
     });
-    app.listen(PORT, ()=>{
+    httpServer.listen(PORT, ()=>{
         console.log(`Apollo Server is running at http://localhost:${PORT}`);
     });
 }

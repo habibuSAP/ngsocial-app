@@ -11,6 +11,11 @@ type Query {
     searchUsers(searchQuery: String): [User] @auth
 }
 
+type Subscription {
+    onPostCommented: Comment
+    onPostLiked: Like
+}
+
 type Mutation {
     post(text: String, image: String): Post @auth
     removePost(id: ID!): ID @auth
@@ -26,6 +31,7 @@ type Mutation {
     setUserCover(file: Upload!):User @auth
     setUserBio(bio: String!): User @auth
 }
+
 type User {
     id: ID!
     fullName: String!

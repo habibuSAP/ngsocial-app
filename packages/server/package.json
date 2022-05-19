@@ -23,11 +23,13 @@
     "dotenv": "^16.0.1",
     "express": "^4.17.1",
     "graphql": "^15.6.0",
+    "graphql-subscriptions": "^2.0.0",
     "graphql-upload": "^13.0.0",
     "jsonwebtoken": "^8.5.1",
     "mysql": "^2.18.1",
     "reflect-metadata": "^0.1.13",
     "stream-promise": "^3.2.0",
+    "subscriptions-transport-ws": "^0.11.0",
     "typeorm": "^0.2.37",
     "typeorm-seeding": "^1.6.1"
   },

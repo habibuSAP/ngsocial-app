@@ -12,6 +12,8 @@ import {
 } from '../entity'
 import { GraphQLUpload} from "graphql-upload";
 import fs from "fs";
+import { PubSub } from "graphql-subscriptions";
+const pubsub = new PubSub();
 
 const { finished } = require('stream-promise');
 
@@ -177,6 +179,7 @@ const resolvers: Resolvers = {
                 latestComment: savedComment
             });
             savedComment.post = await orm.postRepository.findOne(args.postId) as PostEntity;
+            pubsub.publish('ON_POST_COMMENTED', {onPostCommented: savedComment});
             return savedComment as unknown as Comment;
         },
         // @ts-ignore
@@ -189,6 +192,7 @@ const resolvers: Resolvers = {
            const savedLike = await orm.likeRepository.save(like);
            await orm.postRepository.update(args.postId, {likesCount: savedLike.post.likesCount + 1});
            savedLike.post = await orm.postRepository.findOne(args.postId) as PostEntity;
+           pubsub.publish('ON_POST_LIKED', {onPostLiked:savedLike});
            return savedLike as unknown as Like;
         },
         // @ts-ignore
@@ -378,7 +382,17 @@ const resolvers: Resolvers = {
 
     },
     // @ts-ignore
-    Upload: GraphQLUpload
+    Upload: GraphQLUpload,
+    Subscription: {
+        onPostCommented: {
+            // @ts-ignore
+            subscribe: ()=> pubsub.asyncIterator(['ON_POST_COMMENTED'])
+        },
+        onPostLiked: {
+            // @ts-ignore
+            subscribe: ()=> pubsub.asyncIterator(['ON_POST_LIKED'])
+        }
+    }
 };
 
 export default resolvers;

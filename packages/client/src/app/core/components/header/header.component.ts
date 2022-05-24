@@ -7,6 +7,10 @@ import { Component, OnInit } from '@angular/core';
 })
 export class HeaderComponent implements OnInit {
 
+  invokeMe() {
+    console.log('Invoked function');
+  }
+
   constructor() { }
 
   ngOnInit(): void {

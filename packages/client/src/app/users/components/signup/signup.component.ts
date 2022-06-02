@@ -56,11 +56,10 @@ export class SignupComponent implements OnInit, OnDestroy {
           const saveUserId = response?.register.user.id;
           this.snackBar.open('User registered successfully', 'Ok', { duration: 5 * 1000 });
           if (saveUserId) {
-            this.router.navigateByUrl(`/users/profiles/${saveUserId}`);
+            this.router.navigateByUrl(`/users/profile/${saveUserId}`);
           }
         },
-        error: (err) => {
-          console.error(err.error);
+        error: (err: any | null | undefined) => {
           this.errorMessage = err.message;
           this.snackBar.open(err.error.message, 'Ok', { duration: 5 * 1000 });
         }

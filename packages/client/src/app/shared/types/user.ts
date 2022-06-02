@@ -10,5 +10,5 @@ export type UsersResponse = {
 };
 export type SearchUsersResponse = {
   data: Observable<UsersResponse>;
-  fetMore: (Users: IUser[]) => void;
+  fetchMore: (Users: IUser[]) => void;
 };

@@ -1,4 +1,27 @@
-<button routerLink="/feed/posts/">Feed</button>
-<button routerLink="/users/profile/habibu">My Profile</button>
-<button routerLink="/users/login">Login</button>
-<button routerLink="/users/signup">Sign up</button>
+<mat-toolbar>
+  <mat-toolbar-row>
+    <h2>Social Network</h2>
+    <div *ngIf="authService.isLoggedIn">
+      <input class="searchbar" type="text" placeholder="Search" #searchInput matInput>
+      <button mat-icon-button (click)="searchUsers()">
+        <mat-icon>search</mat-icon>
+    </div>
+    <span class="spacer"></span>
+    <button *ngIf="authService.isLoggedIn" mat-icon-button matTooltip="Notifications">
+      <mat-icon aria-hidden="false" aria-label="Notifications">notifications</mat-icon>
+    </button>
+    <button *ngIf="authService.isLoggedIn" mat-icon-button matTooltip="My Profile"
+      routerLink="/users/profile/{{authService.authUser?.id}}">
+      <mat-icon aria-hidden="false" aria-label="My Profile">person</mat-icon>
+    </button>
+    <button *ngIf="authService.isLoggedIn" mat-icon-button matTooltip="Home" routerLink="/feed/posts">
+      <mat-icon aria-hidden="false" aria-label="Home">home</mat-icon>
+    </button>
+    <button *ngIf="!authService.isLoggedIn" mat-icon-button matTooltip="Login" routerLink="/users/login">
+      <mat-icon aria-hidden="false" aria-label="Login">login</mat-icon>
+    </button>
+    <button *ngIf="authService.isLoggedIn" mat-icon-button matTooltip="Logout" (click)="authService.logOut()">
+      <mat-icon aria-hidden="false" aria-label="Logout">exit_to_app</mat-icon>
+    </button>
+  </mat-toolbar-row>
+</mat-toolbar>
